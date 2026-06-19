@@ -150,6 +150,25 @@
       transform: translate(10px, 18%);
     }
 
+
+    .place-marker.marker-left-up {
+      flex-direction: row-reverse;
+      transform: translate(-105%, -92%);
+    }
+
+    .place-marker.marker-right-down {
+      transform: translate(10px, 18%);
+    }
+
+    .place-marker.marker-left-mid {
+      flex-direction: row-reverse;
+      transform: translate(-105%, -50%);
+    }
+
+    .place-marker.marker-right-up {
+      transform: translate(10px, -92%);
+    }
+
     .place-marker.label-up {
       transform: translateY(-92%);
     }
@@ -446,6 +465,7 @@
         address: "충북 단양군 단양읍 수변로 111",
         desc: "비 오는 날이나 아이와 함께 가기 좋은 실내 관광지입니다.",
         cats: ["indoor"],
+        markerClass: "marker-left-mid",
         info: "https://www.danyang.go.kr/aquarium"
       },
       {
@@ -470,6 +490,7 @@
         address: "충북 단양군 단양읍 고수동굴길 8",
         desc: "여름·겨울에도 들르기 좋은 단양 대표 석회암 동굴입니다.",
         cats: ["indoor"],
+        markerClass: "marker-right-up",
         info: "https://www.danyang.go.kr/tour/1930?action=read&action-value=ae74518b34cf81c69192192ac4706f49&chathead=%EB%8F%99%EA%B5%B4"
       }
     ];
