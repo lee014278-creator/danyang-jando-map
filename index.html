@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>단양 잔도길 주변 가볼만한곳 지도</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIINfQ7nD15NVAyN0e5MfKvbBfFAiL4tWnE="
+    crossorigin=""
+  />
+
+  <style>
+    :root {
+      --bg: #fbf8f2;
+      --card: #ffffff;
+      --text: #3b332b;
+      --muted: #74685e;
+      --line: #e9dfd2;
+      --soft: #f1e5d4;
+      --soft-2: #ead8c0;
+      --point: #7b5737;
+      --point-dark: #5a3b22;
+      --shadow: 0 10px 28px rgba(74, 54, 35, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    .wrap {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 14px 12px 28px;
+    }
+
+    .map-head {
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 8px 20px rgba(74, 54, 35, 0.07);
+    }
+
+    .map-head h1 {
+      margin: 0 0 4px;
+      font-size: clamp(20px, 5vw, 30px);
+      letter-spacing: -0.04em;
+    }
+
+    .map-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 0 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .filter-btn {
+      flex: 0 0 auto;
+      border: 1px solid var(--soft-2);
+      background: #fffaf2;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(74, 54, 35, 0.06);
+    }
+
+    .filter-btn.active {
+      background: var(--point);
+      color: #fff;
+      border-color: var(--point);
+    }
+
+    .map-box {
+      position: relative;
+      overflow: hidden;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    #map {
+      width: 100%;
+      height: 68vh;
+      min-height: 470px;
+      background: #efe5d8;
+    }
+
+    .map-guide {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 500;
+      background: rgba(255, 250, 242, 0.96);
+      border: 1px solid var(--soft-2);
+      color: var(--point-dark);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 6px 18px rgba(74, 54, 35, 0.13);
+      pointer-events: none;
+    }
+
+    .leaflet-container {
+      font-family: inherit;
+    }
+
+    .leaflet-control-attribution {
+      font-size: 10px;
+    }
+
+    .place-marker {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      transform: translateY(-50%);
+    }
+
+    .marker-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--point);
+      color: #fff;
+      font-weight: 900;
+      font-size: 15px;
+      border: 3px solid #fff;
+      box-shadow: 0 5px 14px rgba(64, 41, 22, 0.25);
+    }
+
+    .marker-label {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: rgba(255, 250, 242, 0.96);
+      border: 1px solid #e3d0b7;
+      color: var(--point-dark);
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: 0 5px 14px rgba(64, 41, 22, 0.14);
+    }
+
+    .place-marker.selected .marker-num {
+      width: 42px;
+      height: 42px;
+      font-size: 17px;
+      background: #3f2917;
+    }
+
+    .place-marker.selected .marker-label {
+      font-size: 14px;
+      background: #fff;
+      border-color: var(--point);
+    }
+
+    .card-section {
+      margin-top: 14px;
+    }
+
+    .card-section h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      letter-spacing: -0.03em;
+    }
+
+    .place-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .place-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: 0 7px 18px rgba(74, 54, 35, 0.07);
+    }
+
+    .place-card.selected {
+      border: 2px solid var(--point);
+      box-shadow: 0 12px 28px rgba(74, 54, 35, 0.18);
+    }
+
+    .place-top {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .card-num {
+      flex: 0 0 auto;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--point);
+      color: #fff;
+      font-weight: 900;
+    }
+
+    .place-name {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.04em;
+    }
+
+    .place-desc {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .addr {
+      margin: 10px 0 0;
+      padding: 9px 10px;
+      border-radius: 12px;
+      background: #fbf6ee;
+      color: #62564c;
+      font-size: 13px;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .link-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 9px 12px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 800;
+      background: var(--soft);
+      color: var(--point-dark);
+      border: 1px solid var(--soft-2);
+    }
+
+    .link-btn.primary {
+      background: var(--point);
+      color: #fff;
+      border-color: var(--point);
+    }
+
+    .note {
+      margin: 14px 2px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 720px) {
+      .wrap {
+        padding: 10px 8px 22px;
+      }
+
+      .map-head {
+        padding: 12px 13px;
+        border-radius: 16px;
+      }
+
+      .filter-btn {
+        padding: 10px 13px;
+        font-size: 14px;
+      }
+
+      #map {
+        height: 68vh;
+        min-height: 430px;
+      }
+
+      .map-guide {
+        top: 10px;
+        left: 10px;
+        font-size: 12px;
+        padding: 7px 10px;
+      }
+
+      .marker-num {
+        width: 34px;
+        height: 34px;
+        font-size: 15px;
+      }
+
+      .marker-label {
+        max-width: 118px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 13px;
+      }
+
+      .place-list {
+        grid-template-columns: 1fr;
+      }
+
+      .place-card {
+        padding: 13px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="wrap">
+    <section class="map-head">
+      <h1>단양 잔도길 주변 가볼만한곳 지도</h1>
+      <p>단양강 잔도에서 함께 묶기 좋은 주변 관광지를 지도에서 눌러 확인해보세요.</p>
+    </section>
+
+    <nav class="filter-row" id="filterRow" aria-label="장소 필터"></nav>
+
+    <section class="map-box" aria-label="단양 잔도길 주변 지도">
+      <div class="map-guide">장소를 누르면 아래 카드가 강조돼요</div>
+      <div id="map"></div>
+    </section>
+
+    <section class="card-section" id="cardSection">
+      <h2>장소 목록</h2>
+      <div class="place-list" id="placeList"></div>
+      <p class="note">
+        네이버지도 버튼은 장소 검색 링크로 연결됩니다. 공식 또는 관광 정보 링크가 확인되지 않은 장소는 해당 버튼을 표시하지 않았습니다.
+      </p>
+    </section>
+  </main>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin="">
+  </script>
+
+  <script>
+    const filters = [
+      { key: "all", label: "전체" },
+      { key: "jando", label: "잔도길 주변" },
+      { key: "view", label: "전망·야경" },
+      { key: "indoor", label: "시장·실내" },
+      { key: "eight", label: "단양팔경" }
+    ];
+
+    const places = [
+      {
+        id: "danyang-jando",
+        no: 1,
+        name: "단양강 잔도",
+        shortName: "단양강 잔도",
+        lat: 36.9769,
+        lng: 128.3372,
+        address: "충북 단양군 적성면 애곡리 산18-15 일대",
+        desc: "남한강 절벽을 따라 걷는 단양 대표 데크 산책길입니다.",
+        cats: ["jando", "view"],
+        official: "https://www.danyang.go.kr/tour/1934?action=read&action-value=e7ea48efdf5a4c59452638ce0cb8fda7&page=2"
+      },
+      {
+        id: "mancheonha",
+        no: 2,
+        name: "만천하스카이워크",
+        shortName: "만천하",
+        lat: 36.9777,
+        lng: 128.3371,
+        address: "충북 단양군 적성면 옷바위길 10",
+        desc: "단양강을 위에서 내려다보는 전망 명소로 잔도길과 함께 묶기 좋습니다.",
+        cats: ["jando", "view"],
+        official: "https://www.dytc.or.kr/mancheonha"
+      },
+      {
+        id: "suyanggae-light",
+        no: 3,
+        name: "수양개빛터널",
+        shortName: "빛터널",
+        lat: 36.9759,
+        lng: 128.3624,
+        address: "충북 단양군 적성면 수양개유적로 390",
+        desc: "밤 코스로 함께 보기 좋은 빛 테마 터널입니다.",
+        cats: ["jando", "view", "indoor"],
+        official: "https://ledtunnel.co.kr/"
+      },
+      {
+        id: "moss-tunnel",
+        no: 4,
+        name: "이끼터널",
+        shortName: "이끼터널",
+        lat: 36.9764,
+        lng: 128.3598,
+        address: "충북 단양군 적성면 애곡리 129-2 일대",
+        desc: "수양개빛터널 근처에 있는 사진 명소로, 잔도길과 함께 묶기 좋습니다.",
+        cats: ["jando", "view"],
+        official: ""
+      },
+      {
+        id: "gugyeong-market",
+        no: 5,
+        name: "단양구경시장",
+        shortName: "구경시장",
+        lat: 36.9825,
+        lng: 128.3700,
+        address: "충북 단양군 단양읍 도전5길 31",
+        desc: "잔도길 산책 후 먹거리 코스로 들르기 좋은 단양 대표 시장입니다.",
+        cats: ["indoor"],
+        official: "https://www.danyang.go.kr/tour/1944?action=read&action-value=f40c955214202643e20d772efedeebf8&page=1&tags=%EC%8B%9C%EC%9E%A5"
+      },
+      {
+        id: "danuri-aquarium",
+        no: 6,
+        name: "다누리아쿠아리움",
+        shortName: "아쿠아리움",
+        lat: 36.9870,
+        lng: 128.3693,
+        address: "충북 단양군 단양읍 수변로 111",
+        desc: "비 오는 날이나 아이와 함께 가기 좋은 실내 관광지입니다.",
+        cats: ["indoor"],
+        official: "https://www.danyang.go.kr/aquarium"
+      },
+      {
+        id: "dodamsambong",
+        no: 7,
+        name: "도담삼봉",
+        shortName: "도담삼봉",
+        lat: 36.9989,
+        lng: 128.3444,
+        address: "충북 단양군 매포읍 삼봉로 644-33",
+        desc: "단양팔경을 대표하는 명소로, 단양 여행 지도에 함께 넣기 좋습니다.",
+        cats: ["eight", "view"],
+        official: "https://www.danyang.go.kr/tour/1916?action=read&action-value=05bcae251f5da56380fb4c0f473c7f9e&chathead=%EB%8B%A8%EC%96%91%ED%8C%94%EA%B2%BD"
+      },
+      {
+        id: "gosu-cave",
+        no: 8,
+        name: "고수동굴",
+        shortName: "고수동굴",
+        lat: 36.9883,
+        lng: 128.3814,
+        address: "충북 단양군 단양읍 고수동굴길 8",
+        desc: "여름·겨울에도 들르기 좋은 단양 대표 석회암 동굴입니다.",
+        cats: ["indoor"],
+        official: "https://danyang.go.kr/tour/1930?action=read&action-value=ae74518b34cf81c69192192ac4706f49&chathead=%EB%8F%99%EA%B5%B4"
+      }
+    ];
+
+    let currentFilter = "all";
+    let selectedId = null;
+    let markerLayer = L.layerGroup();
+
+    const map = L.map("map", {
+      zoomControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      touchZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      tap: false
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+
+    markerLayer.addTo(map);
+
+    function naverSearchUrl(placeName) {
+      return "https://map.naver.com/p/search/" + encodeURIComponent(placeName);
+    }
+
+    function getFilteredPlaces() {
+      if (currentFilter === "all") return places;
+      return places.filter(place => place.cats.includes(currentFilter));
+    }
+
+    function makeMarkerIcon(place, isSelected) {
+      return L.divIcon({
+        className: "",
+        html: `
+          <div class="place-marker ${isSelected ? "selected" : ""}">
+            <span class="marker-num">${place.no}</span>
+            <span class="marker-label">${place.shortName}</span>
+          </div>
+        `,
+        iconSize: [150, 42],
+        iconAnchor: [18, 18]
+      });
+    }
+
+    function fitToPlaces(targetPlaces) {
+      if (!targetPlaces.length) return;
+
+      const bounds = L.latLngBounds(targetPlaces.map(place => [place.lat, place.lng]));
+
+      if (targetPlaces.length === 1) {
+        map.setView([targetPlaces[0].lat, targetPlaces[0].lng], 15, { animate: false });
+        return;
+      }
+
+      map.fitBounds(bounds, {
+        padding: [42, 42],
+        animate: false,
+        maxZoom: 14
+      });
+    }
+
+    function renderMarkers() {
+      markerLayer.clearLayers();
+
+      const targetPlaces = getFilteredPlaces();
+
+      targetPlaces.forEach(place => {
+        const marker = L.marker([place.lat, place.lng], {
+          icon: makeMarkerIcon(place, place.id === selectedId),
+          keyboard: false
+        });
+
+        marker.on("click", () => {
+          selectedId = place.id;
+          renderMarkers();
+          renderCards();
+          document.getElementById("cardSection").scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+          });
+        });
+
+        markerLayer.addLayer(marker);
+      });
+
+      fitToPlaces(targetPlaces);
+    }
+
+    function renderFilters() {
+      const filterRow = document.getElementById("filterRow");
+      filterRow.innerHTML = "";
+
+      filters.forEach(filter => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "filter-btn" + (currentFilter === filter.key ? " active" : "");
+        btn.textContent = filter.label;
+
+        btn.addEventListener("click", () => {
+          currentFilter = filter.key;
+          selectedId = null;
+          renderFilters();
+          renderMarkers();
+          renderCards();
+        });
+
+        filterRow.appendChild(btn);
+      });
+    }
+
+    function renderCards() {
+      const list = document.getElementById("placeList");
+      const targetPlaces = getFilteredPlaces();
+      const sortedPlaces = [...targetPlaces].sort((a, b) => {
+        if (a.id === selectedId) return -1;
+        if (b.id === selectedId) return 1;
+        return a.no - b.no;
+      });
+
+      list.innerHTML = "";
+
+      sortedPlaces.forEach(place => {
+        const card = document.createElement("article");
+        card.className = "place-card" + (place.id === selectedId ? " selected" : "");
+
+        const officialButton = place.official
+          ? `<a class="link-btn" href="${place.official}" target="_blank" rel="noopener">관광 정보</a>`
+          : "";
+
+        card.innerHTML = `
+          <div class="place-top">
+            <span class="card-num">${place.no}</span>
+            <div>
+              <h3 class="place-name">${place.name}</h3>
+              <p class="place-desc">${place.desc}</p>
+            </div>
+          </div>
+          <div class="addr">${place.address}</div>
+          <div class="btn-row">
+            <a class="link-btn primary" href="${naverSearchUrl(place.name)}" target="_blank" rel="noopener">네이버지도</a>
+            ${officialButton}
+          </div>
+        `;
+
+        card.addEventListener("click", () => {
+          selectedId = place.id;
+          renderMarkers();
+          renderCards();
+        });
+
+        list.appendChild(card);
+      });
+    }
+
+    renderFilters();
+    renderMarkers();
+    renderCards();
+
+    window.addEventListener("resize", () => {
+      fitToPlaces(getFilteredPlaces());
+    });
+  </script>
+</body>
+</html>
